@@ -1,0 +1,11 @@
+# Python
+venv
+__pycache__/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Poktroll
+config
+keyring-test
+poktrolld
