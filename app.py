@@ -99,6 +99,8 @@ else:
                     "--home",
                     "./",
                     "--yes",
+                    "--chain-id",
+                    CHAIN_ID,
                     "--keyring-backend",
                     "test",
                     "--output",
