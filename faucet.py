@@ -27,10 +27,8 @@ def import_faucet_key(poktrolld_path: str) -> bool:
         "--output",
         "json",
     ]
-    check_result = subprocess.run(" ".join(check_command), capture_output=True, text=True, shell=True)
-
+    check_result = subprocess.run(" ".join(check_command), capture_output=True, shell=True)
     if check_result.returncode == 0:
-        print("Faucet key already imported!")
         return True
 
     # Import the faucet key
@@ -45,9 +43,7 @@ def import_faucet_key(poktrolld_path: str) -> bool:
         "--home",
         "./",
     ]
-
     result = subprocess.run(" ".join(command), capture_output=True, text=True, shell=True)
-
     if result.returncode != 0:
         st.error(f"Error importing faucet key: {result.stderr}. Fix the problem and try again!")
         return False

@@ -11,6 +11,12 @@ from requests.exceptions import RequestException
 # arm64: https://drive.google.com/file/d/1BBBdDHw4e5w8abmAoTKou_dIfDkV4pKD/view?usp=sharing
 
 
+# Check if the poktrolld binary is available on disk
+def is_poktrolld_available(destination: str) -> bool:
+    return os.path.exists(destination)
+
+
+# Cache poktrolld binary into memory so it's available across different Streamlit sessions
 @st.cache_resource
 def download_poktrolld(destination: str) -> bytes:
     if platform.system() == "Darwin":
@@ -21,8 +27,7 @@ def download_poktrolld(destination: str) -> bytes:
     url = f"https://drive.google.com/uc?id={file_id}"
 
     # Check if the binary already exists
-    if os.path.exists(destination):
-        print("poktrolld binary already exists.")
+    if is_poktrolld_available(destination):
         return load_executable(destination)
 
     try:
@@ -48,12 +53,14 @@ def load_executable(file_path: str) -> bytes:
 
 
 # Function to write binary data to disk
-def write_executable_to_disk(binary_data: str, output_path: str) -> None:
+def write_executable_to_disk(binary_data: str, output_path: str) -> bool:
     with open(output_path, "wb") as f:
         f.write(binary_data)  # Write the binary data to a new file
     try:
         # Run the chmod +x command to make the file executable
         subprocess.run(["chmod", "+x", output_path], check=True)
         print(f"{output_path} is now executable.")
+        return True
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
+        return False
