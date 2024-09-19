@@ -73,7 +73,7 @@ def add_tab_address():
                     "--yes",
                 ]
                 + CMD_SHARED_ARGS_KEYRING
-                + +CMD_SHARE_JSON_OUTPUT
+                + CMD_SHARE_JSON_OUTPUT
             )
             result = subprocess.run(" ".join(rename_command), capture_output=True, text=True, shell=True)
             if result.returncode == 0:
@@ -106,7 +106,7 @@ def add_tab_address():
             ]
             + CMD_SHARED_ARGS_KEYRING
             + CMD_SHARED_ARGS_NODE
-            + +CMD_SHARE_JSON_OUTPUT
+            + CMD_SHARE_JSON_OUTPUT
         )
         result = subprocess.run(" ".join(fund_command), capture_output=True, text=True, shell=True)
 
