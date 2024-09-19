@@ -3,17 +3,23 @@ import platform
 import subprocess
 
 import gdown
-import requests
 import streamlit as st
 from requests.exceptions import RequestException
 
-# amd64: https://drive.google.com/file/d/1jFnvP931nh5cX-gq7PnJxUOAQPwCpb_m/view?usp=sharing
-# arm64: https://drive.google.com/file/d/1BBBdDHw4e5w8abmAoTKou_dIfDkV4pKD/view?usp=sharing
+CHAIN_ID = "poktroll"
+POKTROLLD_PATH = "./poktrolld"
+CMD_SHARED_ARGS_KEYRING = ["--home", "./", "--keyring-backend", "test"]
+CMD_SHARED_ARGS_NODE = ["--node", "https://testnet-validated-validator-rpc.poktroll.com", "--chain-id", CHAIN_ID]
+CMD_SHARE_JSON_OUTPUT = ["--output", "json"]
 
 
 # Check if the poktrolld binary is available on disk
 def is_poktrolld_available(destination: str) -> bool:
     return os.path.exists(destination)
+
+
+# amd64: https://drive.google.com/file/d/1jFnvP931nh5cX-gq7PnJxUOAQPwCpb_m/view?usp=sharing
+# arm64: https://drive.google.com/file/d/1BBBdDHw4e5w8abmAoTKou_dIfDkV4pKD/view?usp=sharing
 
 
 # Cache poktrolld binary into memory so it's available across different Streamlit sessions
