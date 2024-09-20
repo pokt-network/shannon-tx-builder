@@ -15,7 +15,15 @@ FAUCET_NAME = "faucet"
 def add_tab_address():
     st.header("Create a new address")
 
-    # Button to generate a new address
+    generate_addr_button()
+    rename_and_export_key_helpers()
+    # Import the faucet key in order to fund new addresses
+    faucet_key_imported = import_faucet_key(POKTROLLD_PATH)
+    if faucet_key_imported:
+        fund_addr_button()
+
+
+def generate_addr_button():
     if st.button("Generate New Address"):
         # Generate a random key name to avoid conflicts in the keyring
         random_suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
@@ -47,6 +55,8 @@ def add_tab_address():
         else:
             st.error(f"Error generating address: {result.stderr}")
 
+
+def rename_and_export_key_helpers():
     # Display the address and private key if they exist
     if "new_address" in st.session_state:
         st.write("**Key Name:**")
@@ -60,8 +70,7 @@ def add_tab_address():
 
         st.subheader("[Optional] Rename your key")
 
-        new_key_name = "Put_your_key_name_here"
-        new_key_name = st.text_input("New Key Name", new_key_name)
+        new_key_name = st.text_input("New Key Name", st.session_state["key_name"])
         if st.button("Rename"):
             rename_command = (
                 [
@@ -82,15 +91,18 @@ def add_tab_address():
             else:
                 st.error(f"Error renaming key: {result.stderr}")
 
-    # Import the faucet key in order to fund new addresses
-    faucet_key_imported = import_faucet_key(POKTROLLD_PATH)
+        st.subheader("Import your key to your local machine")
+        st.write("Run the following command and copy-paste the mnemonic above when prompted")
+        st.code(f"poktrolld keys add {new_key_name} --recover")
+
+
+def fund_addr_button():
 
     st.header("Fund your new address")
-
     # Fund button
     if "new_address" not in st.session_state:
         st.warning("Please generate an address first.")
-    elif st.button("Fund") and faucet_key_imported:
+    elif st.button("Fund"):
         address = st.session_state["new_address"]
         # Run 'poktrolld tx bank send faucet <addr> <amount> --chain-id ...'
         fund_command = (
