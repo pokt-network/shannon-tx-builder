@@ -1,6 +1,9 @@
-## Getting Started
+# Getting Started <!-- omit in toc -->
 
-### Environment Setup (One Time)
+- [Environment Setup (One Time)](#environment-setup-one-time)
+- [Environment Usage (Every Time)](#environment-usage-every-time)
+
+## Environment Setup (One Time)
 
 ```bash
 make env_create
@@ -8,14 +11,14 @@ $(make env_source)
 make pip_install
 ```
 
-### Environment Usage (Every Time)
+## Environment Usage (Every Time)
 
 ```bash
 $(make env_source) # If new dependencies were added
 make pip_freeze
 ```
 
-Tab 1: I want to deploy a gateqat
+Tab 1: I want to deploy a gateway
 
 - Click here to generate an address
 - Click here to fund it

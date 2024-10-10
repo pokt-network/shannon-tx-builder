@@ -50,10 +50,14 @@ py_format: check-env  ## Format the python code
 	black .
 	isort .
 
-####################
-### Your stuff   ###
-####################
+#####################
+### Streamlit app ###
+#####################
+
+.PHONY: run_localnet
+run_localnet: check-env  ## Run the Streamlit app pointing to a LocalNet node (POKTROLLD_HOME=... make run_localnet)
+	POCKET_ENV=localnet POKTROLLD_HOME=$(POKTROLLD_HOME) python -m streamlit run app.py
 
 .PHONY: run
-run: check-env  ## Run the Streamlit app
-	python -m streamlit run app.py
+run: check-env  ## Run the Streamlit app (defaults to TestNet RPC)
+	POCKET_ENV=testnet python -m streamlit run app.py

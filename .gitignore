@@ -2,6 +2,9 @@
 venv
 __pycache__/
 
+# VSCode
+.vscode
+
 # Streamlit
 .streamlit/secrets.toml
 
@@ -9,3 +12,7 @@ __pycache__/
 config
 keyring-test
 poktrolld
+
+# Secrets
+.streamlit/secrets.toml
+.env

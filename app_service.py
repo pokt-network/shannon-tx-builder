@@ -3,10 +3,10 @@ import subprocess
 
 import streamlit as st
 
-from poktrolld import CMD_SHARE_JSON_OUTPUT, CMD_SHARED_ARGS_KEYRING, CMD_SHARED_ARGS_NODE, POKTROLLD_PATH
+from poktrolld import CMD_SHARE_JSON_OUTPUT, CMD_SHARED_ARGS_NODE, EXPLORER_URL, POKTROLLD_BIN_PATH
 
 
-def add_tab_service():
+def add_service_tab():
     st.header("Create Service")
     st.write("Update the parameters below to create a new service.")
     service_id = st.text_input("Service ID", "svc-id")
@@ -15,12 +15,12 @@ def add_tab_service():
     account = st.text_input("Account (to create the service)", "faucet")
     add_service_cmd = (
         [
-            POKTROLLD_PATH,
+            POKTROLLD_BIN_PATH,
             "tx",
             "service",
             "add-service",
-            service_id,
-            service_name,
+            f'"{service_id}"',
+            f'"{service_name}"',
             str(compute_units),
             "--from",
             account,
@@ -31,15 +31,22 @@ def add_tab_service():
     )
     if st.button("Create Service"):
         result = subprocess.run(" ".join(add_service_cmd), capture_output=True, text=True, shell=True)
+        print(result)
+        tx_response = json.loads(result.stdout)
+        tx_hash = tx_response.get("txhash", "N/A")
         if result.returncode == 0:
-            st.success(f"Service {service_id} successfully created!")
+            st.success(f"Service creation tx successfully sent!")
+            st.warning("Note that you may need to wait up to **60 seconds** for changes to show up.")
+            st.write(
+                f"**Transaction Hash**: [poktroll/tx/{tx_hash[0:5]}...{tx_hash[-5:]}]({EXPLORER_URL}/tx/{tx_hash})"
+            )
         else:
             st.error(f"Error creating service {service_id}: {result.stderr}")
 
     st.header("Query Service")
     query_service_cmd = (
         [
-            POKTROLLD_PATH,
+            POKTROLLD_BIN_PATH,
             "query",
             "service",
             "show-service",
