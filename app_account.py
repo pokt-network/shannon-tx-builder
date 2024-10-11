@@ -5,7 +5,8 @@ import subprocess
 
 import streamlit as st
 
-from faucet import import_faucet_key
+from faucet import FAUCET_NAME, import_faucet_key
+from helpers import present_tx_result
 from poktrolld import (
     CMD_SHARE_JSON_OUTPUT,
     CMD_SHARED_ARGS_KEYRING,
@@ -13,9 +14,8 @@ from poktrolld import (
     EXPLORER_URL,
     POCKET_RPC_NODE,
     POKTROLLD_BIN_PATH,
+    is_localnet,
 )
-
-FAUCET_NAME = "faucet"
 
 
 def add_account_tab():
@@ -39,7 +39,7 @@ def generate_addr_section():
         key_name = f"user_key_{random_suffix}"
 
         # poktrolld keys add <name> [flags]
-        command = (
+        cmd_keys_add = (
             [
                 POKTROLLD_BIN_PATH,
                 "keys",
@@ -49,7 +49,7 @@ def generate_addr_section():
             + CMD_SHARED_ARGS_KEYRING
             + CMD_SHARE_JSON_OUTPUT
         )
-        result = subprocess.run(" ".join(command), capture_output=True, shell=True)
+        result = subprocess.run(" ".join(cmd_keys_add), capture_output=True, shell=True)
 
         # Show the results of the newley generated address on success
         if result.returncode == 0:
@@ -66,7 +66,7 @@ def generate_addr_section():
             st.error(f"Error generating address: {result.stderr}")
 
     # Display the generated address and private key IFF they exist
-    if "address" not in st.session_state:
+    if not was_account_created():
         return
 
     st.write("**Key Name (public name on your local Keyring):**")
@@ -79,14 +79,16 @@ def generate_addr_section():
     st.code(st.session_state["mnemonic"])
 
     st.subheader("2. Import your key to your local machine")
+
     st.warning("You can skip this if you're in LocalNet mode.")
     st.write("Run the following command and copy-paste the mnemonic above when prompted")
+
     key_name = st.session_state["key_name"]
     st.code(f"poktrolld keys add {key_name} --recover")
 
 
 def fund_section():
-    if "address" not in st.session_state:
+    if not was_account_created():
         return
 
     st.subheader("3. Fund your new address")
@@ -94,7 +96,7 @@ def fund_section():
         address = st.session_state["address"]
 
         # Run 'poktrolld tx bank send faucet <addr> <amount> --chain-id ...'
-        command = (
+        cmd_tx_bank_send = (
             [
                 POKTROLLD_BIN_PATH,
                 "tx",
@@ -109,22 +111,21 @@ def fund_section():
             + CMD_SHARED_ARGS_NODE
             + CMD_SHARE_JSON_OUTPUT
         )
-        result = subprocess.run(" ".join(command), capture_output=True, text=True, shell=True)
+        result = subprocess.run(" ".join(cmd_tx_bank_send), capture_output=True, text=True, shell=True)
 
         if result.returncode == 0:
             tx_response = json.loads(result.stdout)
             tx_hash = tx_response.get("txhash", "N/A")
             st.success(f"Address funding tx successfully sent!")
-            st.write(
-                f"**Transaction Hash (testnet only)**: [poktroll/tx/{tx_hash[0:5]}...{tx_hash[-5:]}]({EXPLORER_URL}/tx/{tx_hash})"
-            )
-            st.write("You can also query it like so:")
-            st.code(f"poktrolld query tx --type=hash {tx_hash} --node {POCKET_RPC_NODE} --output json | jq")
-            st.write(
-                f"**Account Balance (testnet only)**: [poktroll/account/{address[0:5]}...{address[-5:]}]({EXPLORER_URL}/account/{address})"
-            )
-            st.write("You can also query it like so:")
-            st.code(f"poktrolld query bank balances {address} --node {POCKET_RPC_NODE}")
+            present_tx_result(tx_hash)
+
+            if not is_localnet():
+                st.write(
+                    f"**Account Balance**: [poktroll/account/{address[0:5]}...{address[-5:]}]({EXPLORER_URL}/account/{address})"
+                )
+            st.write("You can also query the balance like so:")
+            st.code(f"poktrolld query bank balances {address} \\\n --node {POCKET_RPC_NODE}")
+
             st.warning("Note that you may need to wait up to **60 seconds** for changes to show up.")
         else:
             st.error(f"Error funding address: {result.stderr}")
@@ -132,30 +133,37 @@ def fund_section():
 
 
 def rename_and_export_section():
-    if "address" not in st.session_state:
+    if not was_account_created():
         return
 
-    st.subheader("4. [Optional] Rename your key to semantically identify it locally")
-    new_key_name = st.text_input("New Key Name", st.session_state["key_name"])
+    st.subheader("4. Rename your key to semantically identify it locally")
+    st.warning("This is optional and only affects your local keyring.")
+    old_key_name = st.session_state["key_name"]
+    new_key_name = st.text_input("New Key Name", old_key_name)
 
     # Allow the users to rename their key
-    if st.button("Rename"):
+    disabled = old_key_name == new_key_name
+    if st.button("Rename", disabled=disabled):
         # poktrolld keys rename <old-name> <new-name> [flags]
-        command = (
+        cmd_keys_rename = (
             [
                 POKTROLLD_BIN_PATH,
                 "keys",
                 "rename",
-                st.session_state["key_name"],
+                old_key_name,
                 new_key_name,
                 "--yes",
             ]
             + CMD_SHARED_ARGS_KEYRING
             + CMD_SHARE_JSON_OUTPUT
         )
-        result = subprocess.run(" ".join(command), capture_output=True, text=True, shell=True)
+        result = subprocess.run(" ".join(cmd_keys_rename), capture_output=True, text=True, shell=True)
         if result.returncode == 0:
-            st.success(f"Key renamed to {new_key_name}!")
+            st.success(f"Key renamed from {old_key_name}to {new_key_name}!")
             st.session_state["key_name"] = new_key_name
         else:
             st.error(f"Error renaming key: {result.stderr}")
+
+
+def was_account_created():
+    return "address" in st.session_state

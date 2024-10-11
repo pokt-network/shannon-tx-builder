@@ -35,6 +35,10 @@ CMD_SHARED_ARGS_NODE = [
 CMD_SHARED_ARGS_KEYRING = ["--home", POKTROLLD_HOME, "--keyring-backend", "test"]
 
 
+def is_localnet() -> bool:
+    return POCKET_ENV == "localnet"
+
+
 # Cache poktrolld binary into memory so it's available across different Streamlit sessions
 @st.cache_resource
 def download_poktrolld() -> bytes:

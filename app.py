@@ -32,9 +32,13 @@ st.title(f"Poktrolld Tx Builder ({POCKET_ENV.capitalize()})")
 if not is_poktrolld_available():
     st.error("Failed to download poktrolld. Please check the logs for more information.")
 else:
+
+    with st.sidebar:
+        st.button("Export all configs")
+
     with tab_address:
         add_account_tab()
-    with tab_supplier:
-        add_supplier_tab()
     with tab_service:
         add_service_tab()
+    with tab_supplier:
+        add_supplier_tab()
