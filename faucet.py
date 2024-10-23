@@ -5,6 +5,9 @@ import streamlit as st
 from poktrolld import CMD_SHARE_JSON_OUTPUT, CMD_SHARED_ARGS_KEYRING, POKTROLLD_BIN_PATH, is_localnet
 
 FAUCET_NAME = "faucet"
+FAUCET_ADDRESS = (
+    st.secrets["faucet"]["localnet"]["address"] if is_localnet() else st.secrets["faucet"]["testnet"]["address"]
+)
 
 
 # Loads private key into keyring if it is available and not already imported.
@@ -27,7 +30,7 @@ def import_faucet_key() -> bool:
             POKTROLLD_BIN_PATH,
             "keys",
             "show",
-            "faucet",
+            FAUCET_NAME,
         ]
         + CMD_SHARED_ARGS_KEYRING
         + CMD_SHARE_JSON_OUTPUT
@@ -41,7 +44,7 @@ def import_faucet_key() -> bool:
         POKTROLLD_BIN_PATH,
         "keys",
         "import-hex",
-        "faucet",
+        FAUCET_NAME,
         faucet_private_key,
     ] + CMD_SHARED_ARGS_KEYRING
     result = subprocess.run(" ".join(command), capture_output=True, text=True, shell=True)
