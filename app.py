@@ -23,7 +23,7 @@ st.title(f"Poktrolld Tx Builder ({POCKET_ENV.capitalize()})")
 
 # Main Tabs
 (
-    tab_address,
+    tab_account,
     tab_service,
     tab_supplier,
 ) = st.tabs(["Account - Create & Fund", "Service - Create & Commit", "Supplier - Stake & Relay Mine"])
@@ -36,7 +36,7 @@ else:
     with st.sidebar:
         st.button("Export all configs")
 
-    with tab_address:
+    with tab_account:
         add_account_tab()
     with tab_service:
         add_service_tab()
