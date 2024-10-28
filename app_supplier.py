@@ -1,15 +1,14 @@
-import ast
 import json
 import subprocess
-import tempfile
 import urllib.parse
 
 import streamlit as st
 
 from faucet import FAUCET_ADDRESS, FAUCET_NAME
-from helpers import present_tx_result
+from helpers import present_tx_result, write_to_temp_yaml_file
 from poktrolld import (
     CMD_SHARE_JSON_OUTPUT,
+    CMD_SHARED_ARGS_KEYRING,
     CMD_SHARED_ARGS_NODE,
     POCKET_GRPC_NODE,
     POCKET_RPC_NODE,
@@ -17,13 +16,6 @@ from poktrolld import (
     POKTROLLD_HOME,
     is_localnet,
 )
-
-
-def write_to_temp_file(data) -> str:
-    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-        tmp_file.write(data.encode("utf-8"))  # Write data to the file
-        tmp_file_path = tmp_file.name  # Get the path to the file
-    return tmp_file_path
 
 
 def add_supplier_tab():
@@ -56,11 +48,14 @@ def stake_supplier():
     )
     st.session_state["supplier_service_id"] = supplier_service_id
     relay_miner_url = st.text_input(
-        "Relay Miner URL (the offchain URL where the services will be accessible)", "http://relayminer:8545"
+        "Relay Miner URL (the offchain URL where the services will be accessible)", "http://localhost:8500"
     )
     st.session_state["relay_miner_url"] = relay_miner_url
+    # TODO_IMPROVE: Set the minimum based on the onchain governance parameters
     stake_amount = st.number_input(
-        "Stake Amount (the amount the supplier puts into escrow to provide services)", min_value=1, value=1000069
+        "Stake Amount (the amount the supplier puts into escrow to provide services)",
+        min_value=1,
+        value=1000069,
     )
 
     st.subheader("2. Stake the onchain Supplier")
@@ -81,9 +76,9 @@ services:
     )
 
     # Create a new service on-chain
-    if st.button("Stake Supplier"):
-        supplier_stake_config = write_to_temp_file(code)
-        # poktrolld tx service add-service <service_id> <service_name> <compute_units> --from <account> [flags]
+    button_clicked = st.button("Stake Supplier")
+    if button_clicked or st.session_state.get("supplier_staked", False):
+        supplier_stake_config = write_to_temp_yaml_file(code)
         cmd_stake_supplier = (
             [
                 POKTROLLD_BIN_PATH,
@@ -100,7 +95,10 @@ services:
             + CMD_SHARED_ARGS_NODE
             + CMD_SHARED_ARGS_KEYRING
         )
-        result = subprocess.run(" ".join(cmd_stake_supplier), capture_output=True, text=True, shell=True)
+        if button_clicked:
+            result = subprocess.run(" ".join(cmd_stake_supplier), capture_output=True, text=True, shell=True)
+        else:
+            result = st.session_state["supplier_stake_result"]
 
         # Check the status of the supplier creation transaction
         tx_response = json.loads(result.stdout)
@@ -111,6 +109,9 @@ services:
                 tx_log = tx_response.get("raw_log", "raw_log unavailable")
                 st.error(f"Error submitting create supplier transaction: {tx_log}")
             else:
+                st.session_state["supplier_staked"] = True
+                st.session_state["supplier_stake_result"] = result
+
                 st.success(f"Supplier creation tx successfully sent!")
                 present_tx_result(tx_hash)
 
@@ -145,7 +146,7 @@ default_signing_key_names: [{supplier_key_name}]
 smt_store_path: {smt_store_path}
 metrics:
   enabled: true
-  addr: :9090
+  addr: :9091
 pocket_node:
   query_node_rpc_url: {POCKET_RPC_NODE}
   query_node_grpc_url: {POCKET_GRPC_NODE}
@@ -169,20 +170,23 @@ ping:
         body=code,
     )
 
-    if not is_localnet():
-        if st.button("Write configs to disk"):
-            relayminer_config_file = write_to_temp_file(code)
+    if is_localnet():
+        if st.button("Write RelayMiner configs to disk") or st.session_state.get(
+            "relayminer_config_file_written", False
+        ):
+            relayminer_config_file = write_to_temp_yaml_file(code)
             st.subheader("4. Start the offchain RelayMiner")
             cmd_code = f"{POKTROLLD_BIN_PATH} relayminer \\\n --home {POKTROLLD_HOME} \\\n --keyring-backend=test \\\n --config={relayminer_config_file}"
             st.code(
                 language="bash",
                 body=cmd_code,
             )
+            st.session_state["relayminer_config_file_written"] = True
     else:
-        relayminer_config_file = write_to_temp_file(code)
+        relayminer_config_file = write_to_temp_yaml_file(code)
         with open(relayminer_config_file, "r") as file:
             st.download_button(
-                label="Download Config File", data=file, file_name="relayminer_config.toml", mime="text/toml"
+                label="Download RelayMiner Config File", data=file, file_name="relayminer_config.toml", mime="text/toml"
             )
             st.subheader("4. Start the offchain RelayMiner")
             cmd_code = f"{POKTROLLD_BIN_PATH} relayminer \\\n --home {POKTROLLD_HOME} \\\n --keyring-backend=test \\\n --config=PATH_TO_CONFIGS_FILE"

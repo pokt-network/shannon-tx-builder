@@ -28,7 +28,7 @@ def add_service_tab():
     default_service_id = st.session_state.get("service_id", f"svc_{random_suffix}")
     service_id = st.text_input("Service ID (the unique identifier for the service)", default_service_id)
     st.session_state["service_id"] = service_id
-    st.session_state["service_id_created_onchain"] = False
+    st.session_state["service_id_created_onchain"] = st.session_state.get("service_id_created_onchain", False)
 
     service_name = st.text_input("Service Name (semantic metadata to describe the service)", f"name for {service_id}")
     compute_units = st.number_input(

@@ -4,7 +4,6 @@ import subprocess
 import sys
 import tarfile
 
-import gdown
 import requests
 import streamlit as st
 from requests.exceptions import RequestException
