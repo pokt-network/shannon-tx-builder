@@ -19,6 +19,13 @@ from poktrolld import (
 )
 
 
+def write_to_temp_file(data) -> str:
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        tmp_file.write(data.encode("utf-8"))  # Write data to the file
+        tmp_file_path = tmp_file.name  # Get the path to the file
+    return tmp_file_path
+
+
 def add_supplier_tab():
     stake_supplier()
     configure_relay_miner()
@@ -162,27 +169,21 @@ ping:
         body=code,
     )
 
-    if st.button("Write configs to disk"):
-        relayminer_config = write_to_temp_file(code)
-
-        st.subheader("4. Start the offchain RelayMiner")
-
-        cmd_code = f"{POKTROLLD_BIN_PATH} relayminer \\\n --home {POKTROLLD_HOME} \\\n --keyring-backend=test \\\n --config={relayminer_config}"
-        st.code(
-            language="bash",
-            body=cmd_code,
-        )
-
-
-# Binary command configs
-POKTROLLD_BIN_PATH = "./poktrolld"
-CMD_SHARE_JSON_OUTPUT = ["--output", "json"]
-
-CMD_SHARED_ARGS_KEYRING = ["--home", POKTROLLD_HOME, "--keyring-backend", "test"]
-
-
-def write_to_temp_file(data) -> str:
-    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-        tmp_file.write(data.encode("utf-8"))  # Write data to the file
-        tmp_file_path = tmp_file.name  # Get the path to the file
-    return tmp_file_path
+    if not is_localnet():
+        if st.button("Write configs to disk"):
+            relayminer_config_file = write_to_temp_file(code)
+            st.subheader("4. Start the offchain RelayMiner")
+            cmd_code = f"{POKTROLLD_BIN_PATH} relayminer \\\n --home {POKTROLLD_HOME} \\\n --keyring-backend=test \\\n --config={relayminer_config_file}"
+            st.code(
+                language="bash",
+                body=cmd_code,
+            )
+    else:
+        relayminer_config_file = write_to_temp_file(code)
+        with open(relayminer_config_file, "r") as file:
+            st.download_button(
+                label="Download Config File", data=file, file_name="relayminer_config.toml", mime="text/toml"
+            )
+            st.subheader("4. Start the offchain RelayMiner")
+            cmd_code = f"{POKTROLLD_BIN_PATH} relayminer \\\n --home {POKTROLLD_HOME} \\\n --keyring-backend=test \\\n --config=PATH_TO_CONFIGS_FILE"
+            st.code(cmd_code, language="bash")
