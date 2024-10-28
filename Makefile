@@ -58,6 +58,10 @@ py_format: check-env  ## Format the python code
 run_localnet: check-env  ## Run the Streamlit app pointing to a LocalNet node (POKTROLLD_HOME=... make run_localnet)
 	POCKET_ENV=localnet POKTROLLD_HOME=$(POKTROLLD_HOME) python -m streamlit run app.py
 
+.PHONY: run_localnet_tilt
+run_localnet_tilt: check-env  ## Run the Streamlit app pointing to a LocalNet node using Tilt
+	TILT_PORT=10351 tilt up
+
 .PHONY: run
 run: check-env  ## Run the Streamlit app (defaults to TestNet RPC)
 	POCKET_ENV=testnet python -m streamlit run app.py

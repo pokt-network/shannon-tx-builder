@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shannon-tx-builder
+  labels:
+    app: shannon-tx-builder
+spec:
+  selector:
+    matchLabels:
+      app: shannon-tx-builder
+  template:
+    metadata:
+      labels:
+        app: shannon-tx-builder
+    spec:
+      containers:
+        - name: shannon-tx-builder
+          image: shannon-tx-builder-image
+          ports:
+            - containerPort: 8003
