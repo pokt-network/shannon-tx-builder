@@ -64,4 +64,4 @@ run_localnet_tilt: check-env  ## Run the Streamlit app pointing to a LocalNet no
 
 .PHONY: run
 run: check-env  ## Run the Streamlit app (defaults to TestNet RPC)
-	POCKET_ENV=testnet python -m streamlit run app.py
+	POCKET_ENV=beta python -m streamlit run app.py

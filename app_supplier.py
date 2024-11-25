@@ -7,13 +7,14 @@ import streamlit as st
 from faucet import FAUCET_ADDRESS, FAUCET_NAME
 from helpers import present_tx_result, write_to_temp_yaml_file
 from poktrolld import (
-    CMD_SHARE_JSON_OUTPUT,
-    CMD_SHARED_ARGS_KEYRING,
-    CMD_SHARED_ARGS_NODE,
-    POCKET_GRPC_NODE,
-    POCKET_RPC_NODE,
+    CMD_ARG_FEES,
+    CMD_ARGS_JSON,
+    CMD_ARGS_KEYRING,
+    CMD_ARGS_NODE,
+    GRPC_NODE,
     POKTROLLD_BIN_PATH,
     POKTROLLD_HOME,
+    RPC_NODE,
     is_localnet,
 )
 
@@ -91,9 +92,10 @@ services:
                 supplier_key_name,
                 "--yes",
             ]
-            + CMD_SHARE_JSON_OUTPUT
-            + CMD_SHARED_ARGS_NODE
-            + CMD_SHARED_ARGS_KEYRING
+            + CMD_ARGS_JSON
+            + CMD_ARGS_NODE
+            + CMD_ARGS_KEYRING
+            + CMD_ARG_FEES
         )
         if button_clicked:
             result = subprocess.run(" ".join(cmd_stake_supplier), capture_output=True, text=True, shell=True)
@@ -104,11 +106,7 @@ services:
         tx_response = json.loads(result.stdout)
         tx_hash = tx_response.get("txhash", "N/A")
         if result.returncode == 0:
-            tx_code = tx_response.get("code", -1)
-            if tx_code != 0:
-                tx_log = tx_response.get("raw_log", "raw_log unavailable")
-                st.error(f"Error submitting create supplier transaction: {tx_log}")
-            else:
+            if tx_response.get("code", -1) == 0:
                 st.session_state["supplier_staked"] = True
                 st.session_state["supplier_stake_result"] = result
 
@@ -117,17 +115,21 @@ services:
 
                 st.write("You can query the supplier like so:")
                 st.code(
-                    f"poktrolld query supplier show-supplier {supplier_addr} \\\n --node {POCKET_RPC_NODE} --output json | jq"
+                    f"poktrolld query supplier show-supplier {supplier_addr} \\\n --node {RPC_NODE} --output json | jq"
                 )
 
                 # TODO: Configure this number once we query the block time from on-chain
                 st.warning("Note that you may need to wait up to **60 seconds** for changes to show up.")
+            else:
+                raw_log = tx_response.get("raw_log", "raw_log unavailable")
+                st.error(f"Error funding address: {raw_log}")
         else:
             st.error(f"Error sending create supplier transaction: {result.stderr}")
 
 
 def configure_relay_miner():
-    default_smt_store_path = "~/.poktroll/smt" if is_localnet() else "/root/.poktroll/smt"
+    default_smt_store_path = "/tmp/poktroll/smt"
+    # default_smt_store_path = "~/.poktroll/smt" if is_localnet() else "/root/.poktroll/smt"
 
     supplier_key_name = st.session_state["supplier_key_name"]
     supplier_service_id = st.session_state["supplier_service_id"]
@@ -136,7 +138,9 @@ def configure_relay_miner():
     relay_miner_url_parsed = urllib.parse.urlsplit(relay_miner_url)
     publically_exposed_hostname = relay_miner_url_parsed.hostname
 
-    smt_store_path = st.text_input("The directory where the RelayMiner stores the SMT", default_smt_store_path)
+    smt_store_path = st.text_input(
+        "The directory where the RelayMiner stores the SMT (make sure to run mkdir -p)", default_smt_store_path
+    )
     backend_url = st.text_input("The URL where the service backend is accessible", "http://localhost:8547")
     listen_url = st.text_input("The URL where the RelayMiner listens for incoming requests", "http://localhost:8500")
 
@@ -148,9 +152,9 @@ metrics:
   enabled: true
   addr: :9091
 pocket_node:
-  query_node_rpc_url: {POCKET_RPC_NODE}
-  query_node_grpc_url: {POCKET_GRPC_NODE}
-  tx_node_rpc_url: {POCKET_RPC_NODE}
+  query_node_rpc_url: {RPC_NODE}
+  query_node_grpc_url: {GRPC_NODE}
+  tx_node_rpc_url: {RPC_NODE}
 suppliers:
   - service_id: {supplier_service_id}
     listen_url: {listen_url}
@@ -186,8 +190,11 @@ ping:
         relayminer_config_file = write_to_temp_yaml_file(code)
         with open(relayminer_config_file, "r") as file:
             st.download_button(
-                label="Download RelayMiner Config File", data=file, file_name="relayminer_config.toml", mime="text/toml"
+                label="Download RelayMiner Config File",
+                data=file,
+                file_name="relayminer_config.yaml",
+                mime="text/toml",
             )
             st.subheader("4. Start the offchain RelayMiner")
-            cmd_code = f"{POKTROLLD_BIN_PATH} relayminer \\\n --home {POKTROLLD_HOME} \\\n --keyring-backend=test \\\n --config=PATH_TO_CONFIGS_FILE"
+            cmd_code = f"{POKTROLLD_BIN_PATH} relayminer \\\n --home {POKTROLLD_HOME} \\\n --keyring-backend=test \\\n --config=relayminer_config.yaml"
             st.code(cmd_code, language="bash")

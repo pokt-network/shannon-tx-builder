@@ -7,13 +7,7 @@ import streamlit as st
 
 from faucet import FAUCET_NAME
 from helpers import present_tx_result
-from poktrolld import (
-    CMD_SHARE_JSON_OUTPUT,
-    CMD_SHARED_ARGS_KEYRING,
-    CMD_SHARED_ARGS_NODE,
-    POCKET_RPC_NODE,
-    POKTROLLD_BIN_PATH,
-)
+from poktrolld import CMD_ARG_FEES, CMD_ARGS_JSON, CMD_ARGS_KEYRING, CMD_ARGS_NODE, POKTROLLD_BIN_PATH, RPC_NODE
 
 
 def add_service_tab():
@@ -57,28 +51,32 @@ def add_service_tab():
                 service_owner,
                 "--yes",
             ]
-            + CMD_SHARE_JSON_OUTPUT
-            + CMD_SHARED_ARGS_NODE
-            + CMD_SHARED_ARGS_KEYRING
+            + CMD_ARGS_JSON
+            + CMD_ARGS_NODE
+            + CMD_ARGS_KEYRING
+            + CMD_ARG_FEES
         )
         result = subprocess.run(" ".join(cmd_service_add), capture_output=True, text=True, shell=True)
+        # print(result)
 
         # Check the status of the service creation
         tx_response = json.loads(result.stdout)
         tx_hash = tx_response.get("txhash", "N/A")
         if result.returncode == 0:
-            st.success(f"Service creation tx successfully sent!")
-            present_tx_result(tx_hash)
+            if tx_response.get("code", -1) == 0:
+                st.success(f"Service creation tx successfully sent!")
+                present_tx_result(tx_hash)
 
-            st.session_state["service_id"] = service_id
-            st.session_state["service_id_created_onchain"] = True
+                st.session_state["service_id"] = service_id
+                st.session_state["service_id_created_onchain"] = True
 
-            st.write("You can query the service like so:")
-            st.code(
-                f"poktrolld query service show-service {service_id} \\\n --node {POCKET_RPC_NODE} --output json | jq"
-            )
+                st.write("You can query the service like so:")
+                st.code(f"poktrolld query service show-service {service_id} \\\n --node {RPC_NODE} --output json | jq")
 
-            # TODO: Configure this number once we query the block time from on-chain
-            st.warning("Note that you may need to wait up to **60 seconds** for changes to show up.")
+                # TODO: Configure this number once we query the block time from on-chain
+                st.warning("Note that you may need to wait up to **60 seconds** for changes to show up.")
+            else:
+                raw_log = tx_response.get("raw_log", "raw_log unavailable")
+                st.error(f"Error funding address: {raw_log}")
         else:
             st.error(f"Error creating service {service_id}: {result.stderr}")

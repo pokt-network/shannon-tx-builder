@@ -1,0 +1,6 @@
+[pocket]
+chain_id = "poktroll"
+explorer_url = "https://shannon.beta.testnet.pokt.network"
+poktrolld_home = "/Users/olshansky/workspace/pocket/poktroll/localnet/poktrolld"
+rpc_node = "tcp://127.0.0.1:26657"
+grpc_node = "tcp://127.0.0.1:9090"

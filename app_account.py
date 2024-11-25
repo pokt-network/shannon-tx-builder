@@ -8,13 +8,14 @@ import streamlit as st
 from faucet import FAUCET_NAME, import_faucet_key
 from helpers import present_tx_result
 from poktrolld import (
-    CMD_SHARE_JSON_OUTPUT,
-    CMD_SHARED_ARGS_KEYRING,
-    CMD_SHARED_ARGS_NODE,
+    CMD_ARG_FEES,
+    CMD_ARGS_JSON,
+    CMD_ARGS_KEYRING,
+    CMD_ARGS_NODE,
     EXPLORER_URL,
-    POCKET_RPC_NODE,
     POKTROLLD_BIN_PATH,
     POKTROLLD_HOME,
+    RPC_NODE,
     is_localnet,
 )
 
@@ -24,6 +25,8 @@ def add_account_tab():
     if not faucet_key_imported:
         st.error("Faucet key cannot be not imported. Please fix your configurations.")
         return
+    else:
+        print("Faucet key imported successfully!")
 
     st.header("Create & Fund a new Account")
 
@@ -49,8 +52,8 @@ def generate_addr_section():
                 "add",
                 key_name,
             ]
-            + CMD_SHARED_ARGS_KEYRING
-            + CMD_SHARE_JSON_OUTPUT
+            + CMD_ARGS_KEYRING
+            + CMD_ARGS_JSON
         )
         result = subprocess.run(" ".join(cmd_keys_add), capture_output=True, shell=True)
 
@@ -114,30 +117,35 @@ def fund_section():
                 "10000000000upokt",
                 "--yes",
             ]
-            + CMD_SHARED_ARGS_KEYRING
-            + CMD_SHARED_ARGS_NODE
-            + CMD_SHARE_JSON_OUTPUT
+            + CMD_ARGS_KEYRING
+            + CMD_ARGS_NODE
+            + CMD_ARGS_JSON
+            + CMD_ARG_FEES
         )
         result = subprocess.run(" ".join(cmd_tx_bank_send), capture_output=True, text=True, shell=True)
+        # print(result)
 
         if result.returncode == 0:
             tx_response = json.loads(result.stdout)
-            tx_hash = tx_response.get("txhash", "N/A")
-            st.success(f"Address funding tx successfully sent!")
-            present_tx_result(tx_hash)
+            if tx_response.get("code", -1) == 0:
+                tx_hash = tx_response.get("txhash", "N/A")
+                st.success(f"Address funding tx successfully sent!")
+                present_tx_result(tx_hash)
 
-            # TODO: Remove this when we have a local explorer as part of LocalNet
-            if not is_localnet():
-                st.write(
-                    f"**Account Balance**: [poktroll/account/{address[0:5]}...{address[-5:]}]({EXPLORER_URL}/account/{address})"
-                )
-            st.write("You can also query the balance like so:")
-            st.code(f"poktrolld query bank balances {address} \\\n --node {POCKET_RPC_NODE} --output json | jq")
+                # TODO: Remove this when we have a local explorer as part of LocalNet
+                if not is_localnet():
+                    st.write(
+                        f"**Account Balance**: [poktroll/account/{address[0:5]}...{address[-5:]}]({EXPLORER_URL}/account/{address})"
+                    )
+                st.write("You can also query the balance like so:")
+                st.code(f"poktrolld query bank balances {address} \\\n --node {RPC_NODE} --output json | jq")
 
-            # TODO: Configure this number once we query the block time from on-chain
-            st.warning("Note that you may need to wait up to **60 seconds** for changes to show up.")
+                # TODO: Configure this number once we query the block time from on-chain
+                st.warning("Note that you may need to wait up to **60 seconds** for changes to show up.")
+            else:
+                raw_log = tx_response.get("raw_log", "raw_log unavailable")
+                st.error(f"Error funding address: {raw_log}")
         else:
-            st.error(f"Error funding address: {result.stderr}")
             st.error(f"Error funding address: {result.stderr}")
 
 
@@ -164,8 +172,8 @@ def rename_and_export_section():
                 new_key_name,
                 "--yes",
             ]
-            + CMD_SHARED_ARGS_KEYRING
-            + CMD_SHARE_JSON_OUTPUT
+            + CMD_ARGS_KEYRING
+            + CMD_ARGS_JSON
         )
         result = subprocess.run(" ".join(cmd_keys_rename), capture_output=True, text=True, shell=True)
         if result.returncode == 0:

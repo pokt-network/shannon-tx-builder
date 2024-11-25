@@ -1,0 +1,6 @@
+[pocket]
+chain_id = "pocket-beta"
+explorer_url = "https://shannon.beta.testnet.pokt.network"
+poktrolld_home = "."
+rpc_node = "https://shannon-testnet-grove-rpc.beta.poktroll.com"
+grpc_node = "https://shannon-testnet-grove-grpc.beta.poktroll.com"

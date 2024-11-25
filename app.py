@@ -1,4 +1,3 @@
-import os
 import time
 
 import streamlit as st
@@ -9,20 +8,20 @@ from app_service import add_service_tab
 from app_supplier import add_supplier_tab
 from poktrolld import POCKET_ENV, download_poktrolld, is_poktrolld_available, write_poktrolld_to_disk
 
-# Load the cached binary
+# Download poktrolld binary  (CLI) if it's not available
 if not is_poktrolld_available():
-    st.warning("Downloading poktrolld binary. Please wait...")
-    with st.spinner("Preparing poktrolld binary. Please wait..."):
+    st.warning("poktrolld not available. About to start download...")
+    with st.spinner("Downloading poktrolld binary. Please wait..."):
         poktrolld_bin = download_poktrolld()
-        poktrolld_bin_ready = write_poktrolld_to_disk(poktrolld_bin)
-        if not poktrolld_bin_ready:
+        is_poktrolld_bin_ready = write_poktrolld_to_disk(poktrolld_bin)
+        if not is_poktrolld_bin_ready:
             st.error("Failed to download poktrolld. Please check the logs for more information.")
         time.sleep(1)
 
 # App title
-st.title(f"Poktrolld Tx Builder ({POCKET_ENV.capitalize()})")
+st.title(f"Shannon Tx Builder ({POCKET_ENV.capitalize()})")
 
-# Main Tabs
+# Application Tabs Setup
 (
     tab_account,
     tab_service,
@@ -37,19 +36,16 @@ st.title(f"Poktrolld Tx Builder ({POCKET_ENV.capitalize()})")
     ]
 )
 
-# ALl tabs
+# Actual Application Tabs
 if not is_poktrolld_available():
     st.error("Failed to download poktrolld. Please check the logs for more information.")
 else:
-
-    with st.sidebar:
-        st.button("Export all configs")
-
-        if st.button("Clear session state"):
-            st.session_state.clear()
-
-        # if st.button("Speed run"):
-        #     st.session_state.clear()
+    # Sidebar
+    # TODO: This is a WIP to add config exporting + session clearing.
+    # with st.sidebar:
+    #     st.button("Export all configs")
+    #     if st.button("Clear session state"):
+    #         st.session_state.clear()
 
     with tab_account:
         add_account_tab()

@@ -3,52 +3,55 @@ import platform
 import subprocess
 import sys
 import tarfile
+from pathlib import Path
 
 import requests
 import streamlit as st
+import toml
 from requests.exceptions import RequestException
 
-# Chain configs
-CHAIN_ID = "poktroll"
-
-# Ecosystem Configs
-EXPLORER_URL = "https://shannon.testnet.pokt.network/poktroll"
-
 # Environment configs
-POCKET_ENV = os.getenv("POCKET_ENV", "testnet")
+POCKET_ENV = os.getenv("POCKET_ENV", "beta")
+if POCKET_ENV == "alpha":
+    config_page = ".streamlit/config.alpha.toml"
+elif POCKET_ENV == "beta":
+    config_page = ".streamlit/config.beta.toml"
+elif POCKET_ENV == "localnet":
+    config_page = ".streamlit/config.localnet.toml"
+else:
+    raise Exception(f"POCKET_ENV is not set or does not exist! {POCKET_ENV}")
 
 
+# Environment elpers
 def is_localnet() -> bool:
     return POCKET_ENV == "localnet"
 
 
-# TestNet
-POCKET_RPC_NODE_TESTNET = "https://testnet-validated-validator-rpc.poktroll.com"
-POCKET_GRPC_NODE_TESTNET = "https://testnet-validated-validator-grpc.poktroll.com"
+def is_beta_testnet() -> bool:
+    return POCKET_ENV == "beta"
 
-# LocalNet
-POCKET_RPC_NODE_LOCALNET = "tcp://127.0.0.1:26657"
-POCKET_GRPC_NODE_LOCALNET = "tcp://127.0.0.1:9090"
 
-# General
-POCKET_RPC_NODE = POCKET_RPC_NODE_LOCALNET if is_localnet() else POCKET_RPC_NODE_TESTNET
-POCKET_GRPC_NODE = POCKET_GRPC_NODE_LOCALNET if is_localnet() else POCKET_GRPC_NODE_TESTNET
-
-# Account source configs
-POKTROLLD_HOME = os.getenv("POKTROLLD_HOME", "./")
+# Chain configs
+configs = toml.loads(Path(config_page).read_text(encoding="utf-8"))["pocket"]
+CHAIN_ID = configs["chain_id"]
+EXPLORER_URL = configs["explorer_url"]
+RPC_NODE = configs["rpc_node"]
+GRPC_NODE = configs["grpc_node"]
+POKTROLLD_HOME = configs["poktrolld_home"]
 if len(POKTROLLD_HOME) == 0 or not os.path.exists(POKTROLLD_HOME):
     raise Exception("POKTROLLD_HOME is not set or does not exist!")
 
-# Binary command configs
+# poktrolld flag configurations
 POKTROLLD_BIN_PATH = "./poktrolld"
-CMD_SHARE_JSON_OUTPUT = ["--output", "json"]
-CMD_SHARED_ARGS_NODE = [
+CMD_ARGS_JSON = ["--output", "json"]
+CMD_ARGS_NODE = [
     "--node",
-    POCKET_RPC_NODE,
+    RPC_NODE,
     "--chain-id",
     CHAIN_ID,
 ]
-CMD_SHARED_ARGS_KEYRING = ["--home", POKTROLLD_HOME, "--keyring-backend", "test"]
+CMD_ARGS_KEYRING = ["--home", POKTROLLD_HOME, "--keyring-backend", "test"]
+CMD_ARG_FEES = ["--fees", "1upokt"]
 
 
 def get_architecture():
@@ -115,11 +118,13 @@ def extract_tarball(filename):
 # Cache poktrolld binary into memory so it's available across different Streamlit sessions
 @st.cache_resource
 def download_poktrolld() -> bytes:
-    # Check if the binary already exists
+
+    # Check if the binary already exists and return if it is
     if is_poktrolld_available():
         print("Loading cached poktrolld")
         return load_poktrolld()
 
+    # Download the binary from GitHub
     try:
         arch = get_architecture()
         print(f"Detected architecture: {arch}")

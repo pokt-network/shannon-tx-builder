@@ -7,13 +7,14 @@ import streamlit as st
 from faucet import FAUCET_ADDRESS, FAUCET_NAME
 from helpers import present_tx_result, write_to_temp_yaml_file
 from poktrolld import (
-    CMD_SHARE_JSON_OUTPUT,
-    CMD_SHARED_ARGS_KEYRING,
-    CMD_SHARED_ARGS_NODE,
-    POCKET_GRPC_NODE,
-    POCKET_RPC_NODE,
+    CMD_ARG_FEES,
+    CMD_ARGS_JSON,
+    CMD_ARGS_KEYRING,
+    CMD_ARGS_NODE,
+    GRPC_NODE,
     POKTROLLD_BIN_PATH,
     POKTROLLD_HOME,
+    RPC_NODE,
     is_localnet,
 )
 
@@ -79,9 +80,10 @@ service_ids:
                 application_key_name,
                 "--yes",
             ]
-            + CMD_SHARE_JSON_OUTPUT
-            + CMD_SHARED_ARGS_NODE
-            + CMD_SHARED_ARGS_KEYRING
+            + CMD_ARGS_JSON
+            + CMD_ARGS_NODE
+            + CMD_ARGS_KEYRING
+            + CMD_ARG_FEES
         )
         if button_clicked:
             result = subprocess.run(" ".join(cmd_stake_application), capture_output=True, text=True, shell=True)
@@ -92,11 +94,7 @@ service_ids:
         tx_response = json.loads(result.stdout)
         tx_hash = tx_response.get("txhash", "N/A")
         if result.returncode == 0:
-            tx_code = tx_response.get("code", -1)
-            if tx_code != 0:
-                tx_log = tx_response.get("raw_log", "raw_log unavailable")
-                st.error(f"Error submitting create application transaction: {tx_log}")
-            else:
+            if tx_response.get("code", -1) == 0:
                 st.session_state["application_staked"] = True
                 st.session_state["application_stake_result"] = result
 
@@ -105,11 +103,14 @@ service_ids:
 
                 st.write("You can query the application like so:")
                 st.code(
-                    f"poktrolld query application show-application {application_addr} \\\n --node {POCKET_RPC_NODE} --output json | jq"
+                    f"poktrolld query application show-application {application_addr} \\\n --node {RPC_NODE} --output json | jq"
                 )
 
                 # TODO: Configure this number once we query the block time from on-chain
                 st.warning("Note that you may need to wait up to **60 seconds** for changes to show up.")
+            else:
+                raw_log = tx_response.get("raw_log", "raw_log unavailable")
+                st.error(f"Error funding address: {raw_log}")
         else:
             st.error(f"Error sending create application transaction: {result.stderr}")
 
@@ -119,8 +120,8 @@ def configure_appgate_server():
     appgate_server_url = st.session_state.get("appgate_server_url", "http://localhost:42169")
 
     st.subheader("3. Configure the offchain AppGate Server")
-    code = f"""query_node_rpc_url: {POCKET_RPC_NODE}
-query_node_grpc_url: {POCKET_GRPC_NODE}
+    code = f"""query_node_rpc_url: {RPC_NODE}
+query_node_grpc_url: {GRPC_NODE}
 signing_key: {application_key_name}
 self_signing: true
 listening_endpoint: {appgate_server_url}
@@ -155,11 +156,11 @@ pprof:
             st.download_button(
                 label="Download AppGate Server Config File",
                 data=file,
-                file_name="appgate_server_config.toml",
-                mime="text/toml",
+                file_name="appgate_server_config.yaml",
+                mime="text/yaml",
             )
             st.subheader("4. Start the offchain AppGate Server")
-            cmd_code = f"{POKTROLLD_BIN_PATH} appgate-server \\\n --home {POKTROLLD_HOME} \\\n --keyring-backend=test \\\n --config=PATH_TO_CONFIGS_FILE"
+            cmd_code = f"{POKTROLLD_BIN_PATH} appgate-server \\\n --home {POKTROLLD_HOME} \\\n --keyring-backend=test \\\n --config=appgate_server_config.yaml"
             st.code(cmd_code, language="bash")
             send_a_curl_request()
 
