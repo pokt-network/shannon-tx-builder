@@ -42,10 +42,18 @@ if not is_poktrolld_available():
 else:
     # Sidebar
     # TODO: This is a WIP to add config exporting + session clearing.
-    # with st.sidebar:
-    #     st.button("Export all configs")
-    #     if st.button("Clear session state"):
-    #         st.session_state.clear()
+    with st.sidebar:
+        st.write(
+            """
+TODO:\n
+- Export all configs\n
+- Clear session state
+- Faucet only page
+- Governance page
+- Migrate from AppGateSerer to PATH
+- Got ideas? Add them to this list!
+"""
+        )
 
     with tab_account:
         add_account_tab()
@@ -55,3 +63,5 @@ else:
         add_supplier_tab()
     with tab_application_gateway:
         add_application_tab()
+    # TODO: Funding only page - fund an existing account
+    # TODO: Governance page - view & update governance params

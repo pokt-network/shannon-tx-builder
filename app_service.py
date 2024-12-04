@@ -57,6 +57,7 @@ def add_service_tab():
             + CMD_ARG_FEES
         )
         result = subprocess.run(" ".join(cmd_service_add), capture_output=True, text=True, shell=True)
+
         # print(result)
 
         # Check the status of the service creation

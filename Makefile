@@ -54,14 +54,19 @@ py_format: check-env  ## Format the python code
 ### Streamlit app ###
 #####################
 
-.PHONY: run_localnet
-run_localnet: check-env  ## Run the Streamlit app pointing to a LocalNet node (POKTROLLD_HOME=... make run_localnet)
-	POCKET_ENV=localnet POKTROLLD_HOME=$(POKTROLLD_HOME) python -m streamlit run app.py
-
 .PHONY: run_localnet_tilt
-run_localnet_tilt: check-env  ## Run the Streamlit app pointing to a LocalNet node using Tilt
+run_localnet_tilt: check-env  ## Run the Streamlit app using Tilt
+	@echo "NON FUNCTIONAL YET"
 	TILT_PORT=10351 tilt up
 
-.PHONY: run
-run: check-env  ## Run the Streamlit app (defaults to TestNet RPC)
+.PHONY: run_localnet
+run_localnet: check-env  ## Run the Streamlit app pointing to LocalNet specified by POKTROLLD_HOME=... make run_localnet)
+	POCKET_ENV=localnet POKTROLLD_HOME=$(POKTROLLD_HOME) python -m streamlit run app.py
+
+.PHONY: run_alpha_testnet
+run_alpha_testnet: check-env  ## Run the Streamlit app pointing to Alpha TestNet
+	POCKET_ENV=alpha python -m streamlit run app.py
+
+.PHONY: run_beta_testnet
+run_beta_testnet: check-env  ## Run the Streamlit app pointing to Beta TestNet
 	POCKET_ENV=beta python -m streamlit run app.py

@@ -22,7 +22,7 @@ else:
     raise Exception(f"POCKET_ENV is not set or does not exist! {POCKET_ENV}")
 
 
-# Environment elpers
+# Environment helpers
 def is_localnet() -> bool:
     return POCKET_ENV == "localnet"
 
