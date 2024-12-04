@@ -20,6 +20,7 @@ elif POCKET_ENV == "localnet":
     config_page = ".streamlit/config.localnet.toml"
 else:
     raise Exception(f"POCKET_ENV is not set or does not exist! {POCKET_ENV}")
+print(f"Using environment: {POCKET_ENV}")
 
 
 # Environment helpers
